@@ -1,0 +1,6 @@
+@SyncNotes.Server_HostAddress = http://localhost:5258
+
+GET {{SyncNotes.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
