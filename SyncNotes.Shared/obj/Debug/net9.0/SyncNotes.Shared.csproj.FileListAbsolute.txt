@@ -1,0 +1,15 @@
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/bin/Debug/net9.0/SyncNotes.Shared.deps.json
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/bin/Debug/net9.0/SyncNotes.Shared.runtimeconfig.json
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/bin/Debug/net9.0/SyncNotes.Shared.dll
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/bin/Debug/net9.0/SyncNotes.Shared.pdb
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.csproj.AssemblyReference.cache
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.AssemblyInfoInputs.cache
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.AssemblyInfo.cs
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.csproj.CoreCompileInputs.cache
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.sourcelink.json
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.dll
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/refint/SyncNotes.Shared.dll
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.pdb
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/SyncNotes.Shared.genruntimeconfig.cache
+/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/Debug/net9.0/ref/SyncNotes.Shared.dll

@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "QWTJPRcILYqMUWcqkkUvxAA66+XNGuf21eC0UPCu764=",
+  "Source": "SyncNotes.Server",
+  "BasePath": "_content/SyncNotes.Server",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

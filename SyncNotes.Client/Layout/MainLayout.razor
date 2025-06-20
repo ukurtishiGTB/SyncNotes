@@ -1,16 +1,78 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
+@using SyncNotes.Client
+@using Microsoft.AspNetCore.Components.Authorization
+@using SyncNotes.Client.Services
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+<div class="app-container">
+    <NavMenu />
+    <main class="main-content">
+        <div class="content-wrapper">
             @Body
-        </article>
+        </div>
     </main>
+    <footer class="app-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">SyncNotes</div>
+                <div class="footer-copyright">&copy; @DateTime.Now.Year All rights reserved</div>
+            </div>
+        </div>
+    </footer>
 </div>
+
+<style>
+    .app-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        background-attachment: fixed;
+    }
+
+    .main-content {
+        flex: 1;
+        padding: 2rem 1rem;
+    }
+
+    .content-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .app-footer {
+        padding: 1.5rem 0;
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .footer-logo {
+        font-weight: 700;
+        font-size: 1.2rem;
+        background: linear-gradient(90deg, #4facfe, #00f2fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .footer-copyright {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    @@media (max-width: 768px) {
+        .footer-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+    }
+</style>

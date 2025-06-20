@@ -1,7 +1,220 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SyncNotes - Collaborative Note Taking</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="home-container">
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1 class="display-4 fw-bold text-gradient">Welcome to SyncNotes</h1>
+            <p class="lead mb-4">Collaborate on notes in real-time with friends and colleagues.</p>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                <a href="/notes" class="btn btn-primary btn-lg px-4 me-md-2">Start Writing</a>
+                <a href="/friends" class="btn btn-outline-light btn-lg px-4">Connect with Friends</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="floating-card card-1">
+                <div class="card-header">Meeting Notes</div>
+                <div class="card-body">Project kickoff discussion...</div>
+            </div>
+            <div class="floating-card card-2">
+                <div class="card-header">Ideas</div>
+                <div class="card-body">New feature brainstorming...</div>
+            </div>
+            <div class="floating-card card-3">
+                <div class="card-header">To-Do</div>
+                <div class="card-body">Complete documentation...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features-section">
+        <h2 class="text-center mb-5">Key Features</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-pencil-square"></i>
+                    </div>
+                    <h3>Real-time Editing</h3>
+                    <p>See changes as they happen with instant synchronization.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3>Collaboration</h3>
+                    <p>Invite friends and work together on shared notes.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <h3>Secure</h3>
+                    <p>Your notes are private and protected.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
+<style>
+    .home-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        color: #fff;
+        padding: 2rem 1rem;
+    }
+    
+    .hero-section {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5rem;
+        position: relative;
+        min-height: 70vh;
+    }
+    
+    .hero-content {
+        flex: 1;
+        max-width: 600px;
+        z-index: 2;
+    }
+    
+    .hero-image {
+        flex: 1;
+        min-height: 400px;
+        position: relative;
+    }
+    
+    .text-gradient {
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+    
+    .floating-card {
+        position: absolute;
+        width: 220px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        color: #333;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .floating-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+    
+    .floating-card .card-header {
+        background: linear-gradient(90deg, #4ecdc4, #556270);
+        color: white;
+        padding: 10px 15px;
+        font-weight: 600;
+    }
+    
+    .floating-card .card-body {
+        padding: 15px;
+    }
+    
+    .card-1 {
+        top: 20%;
+        left: 10%;
+        z-index: 3;
+        transform: rotate(-5deg);
+    }
+    
+    .card-2 {
+        top: 40%;
+        left: 30%;
+        z-index: 2;
+        transform: rotate(3deg);
+    }
+    
+    .card-3 {
+        top: 60%;
+        left: 15%;
+        z-index: 1;
+        transform: rotate(-2deg);
+    }
+    
+    .features-section {
+        padding: 4rem 0;
+    }
+    
+    .feature-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 2rem;
+        height: 100%;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #4ecdc4;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(90deg, #4ecdc4, #556270);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+    }
+    
+    .btn-outline-light {
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    @@media (max-width: 768px) {
+        .hero-section {
+            flex-direction: column;
+        }
+        
+        .hero-content {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .floating-card {
+            position: relative;
+            margin: 1rem auto;
+            left: 0 !important;
+            top: 0 !important;
+        }
+    }
+</style>

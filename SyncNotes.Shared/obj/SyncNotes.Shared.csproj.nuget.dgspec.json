@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/SyncNotes.Shared.csproj": {}
+    "/Users/ubejdkurtishi/RiderProjects/SyncNotes1/SyncNotes.Shared/SyncNotes.Shared.csproj": {}
   },
   "projects": {
-    "/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/SyncNotes.Shared.csproj": {
+    "/Users/ubejdkurtishi/RiderProjects/SyncNotes1/SyncNotes.Shared/SyncNotes.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/SyncNotes.Shared.csproj",
+        "projectUniqueName": "/Users/ubejdkurtishi/RiderProjects/SyncNotes1/SyncNotes.Shared/SyncNotes.Shared.csproj",
         "projectName": "SyncNotes.Shared",
-        "projectPath": "/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/SyncNotes.Shared.csproj",
+        "projectPath": "/Users/ubejdkurtishi/RiderProjects/SyncNotes1/SyncNotes.Shared/SyncNotes.Shared.csproj",
         "packagesPath": "/Users/ubejdkurtishi/.nuget/packages/",
-        "outputPath": "/Users/ubejdkurtishi/RiderProjects/SyncNotes/SyncNotes.Shared/obj/",
+        "outputPath": "/Users/ubejdkurtishi/RiderProjects/SyncNotes1/SyncNotes.Shared/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/ubejdkurtishi/.nuget/NuGet/NuGet.Config"
@@ -43,6 +43,32 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[9.0.6, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.6, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[9.0.6, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.6, )"
+            },
+            "StackExchange.Redis": {
+              "target": "Package",
+              "version": "[2.8.41, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",

@@ -1,0 +1,442 @@
+@page "/editor"
+@using SyncNotes.Shared.Models
+@inject SyncNotes.Client.Services.NoteHubService NoteHub
+@inject ILogger<NoteEditor> Logger
+
+<div class="editor-container">
+    <div class="page-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h2 class="text-gradient">Collaborative Notes</h2>
+                <p class="text-muted">Create and edit notes in real-time</p>
+            </div>
+            <button class="btn btn-create" @onclick="CreateNewNote">
+                <i class="bi bi-plus-lg me-2"></i>New Note
+            </button>
+        </div>
+    </div>
+
+    @if (_errorMessage != null)
+    {
+        <div class="alert alert-glass alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="glass-card notes-sidebar">
+                <div class="sidebar-header">
+                    <h5>My Notes</h5>
+                    <span class="notes-count">@_notes.Count notes</span>
+                </div>
+                
+                @if (_notes.Count == 0)
+                {
+                    <div class="empty-notes">
+                        <i class="bi bi-journal-text"></i>
+                        <p>No notes yet</p>
+                        <small>Click the "New Note" button to get started</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="notes-list">
+                        @foreach (var note in _notes.Values.OrderByDescending(n => n.LastModified))
+                        {
+                            <div class="note-item @(note.Id == _selectedNote?.Id ? "active" : "")"
+                                @onclick="() => SelectNote(note)">
+                                <div class="note-content">
+                                    <h6 class="note-title">@(string.IsNullOrEmpty(note.NoteName) ? "Untitled Note" : note.NoteName)</h6>
+                                    <div class="note-meta">
+                                        <span class="note-date">@note.LastModified.ToLocalTime().ToString("MMM d, h:mm tt")</span>
+                                        <span class="note-author">@note.LastModifiedByName</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="glass-card editor-card">
+                @if (_selectedNote != null)
+                {
+                    <div class="editor-header">
+                        <input class="title-input" 
+                               @bind="_selectedNote.NoteName" 
+                               @oninput="HandleTitleChange"
+                               placeholder="Untitled Note" />
+                        
+                        <div class="editor-actions">
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteNote(_selectedNote.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="editor-body">
+                        <textarea class="content-textarea"
+                                  @oninput="HandleContentChange"
+                                  placeholder="Start typing your note here...">@_selectedNote.Content</textarea>
+                    </div>
+                    
+                    <div class="editor-footer">
+                        <small class="text-muted">
+                            Last edited by @_selectedNote.LastModifiedByName at @_selectedNote.LastModified.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+                        </small>
+                    </div>
+                }
+                else
+                {
+                    <div class="editor-placeholder">
+                        <div class="placeholder-content">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <h4>No Note Selected</h4>
+                            <p>Select a note from the list or create a new one to start editing</p>
+                            <button class="btn btn-create mt-3" @onclick="CreateNewNote">
+                                <i class="bi bi-plus-lg me-2"></i>Create New Note
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .editor-container {
+        min-height: 100vh;
+        padding: 2rem;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .text-gradient {
+        background: linear-gradient(90deg, #5ee7df, #b490ca);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: calc(100vh - 150px);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .btn-create {
+        background: linear-gradient(90deg, #5ee7df, #b490ca);
+        color: #1e3c72;
+        border: none;
+        border-radius: 50px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-create:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(94, 231, 223, 0.3);
+    }
+    
+    .alert-glass {
+        background: rgba(220, 53, 69, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: #fff;
+    }
+    
+    /* Notes Sidebar */
+    .notes-sidebar {
+        overflow: hidden;
+    }
+    
+    .sidebar-header {
+        padding: 1.25rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .notes-count {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+    }
+    
+    .notes-list {
+        overflow-y: auto;
+        flex-grow: 1;
+        padding: 1rem;
+    }
+    
+    .note-item {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .note-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .note-item.active {
+        background: rgba(94, 231, 223, 0.2);
+        border-left: 3px solid #5ee7df;
+    }
+    
+    .note-title {
+        margin: 0 0 0.5rem 0;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .note-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .empty-notes {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+    }
+    
+    .empty-notes i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Editor */
+    .editor-card {
+        overflow: hidden;
+    }
+    
+    .editor-header {
+        padding: 1.25rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .title-input {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 600;
+        width: 100%;
+        padding: 0.5rem 0;
+    }
+    
+    .title-input:focus {
+        outline: none;
+    }
+    
+    .title-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .editor-body {
+        flex-grow: 1;
+        padding: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .content-textarea {
+        width: 100%;
+        height: calc(100vh - 280px);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: white;
+        padding: 1rem;
+        resize: none;
+        transition: all 0.2s ease;
+    }
+    
+    .content-textarea:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(94, 231, 223, 0.5);
+    }
+    
+    .content-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .editor-footer {
+        padding: 1rem 1.5rem;
+        background: rgba(0, 0, 0, 0.1);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .editor-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .placeholder-content {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .placeholder-content i {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+    
+    .btn-danger {
+        background: rgba(220, 53, 69, 0.2);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: rgba(255, 255, 255, 0.9);
+        transition: all 0.2s ease;
+    }
+    
+    .btn-danger:hover {
+        background: rgba(220, 53, 69, 0.4);
+    }
+</style>
+
+@code {
+    private readonly Dictionary<string, Note> _notes = new();
+    private Note? _selectedNote;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await NoteHub.StartAsync();
+
+            NoteHub.OnInitialStateReceived += (notes, _, _) =>
+            {
+                _notes.Clear();
+                foreach (var note in notes)
+                    _notes[note.Id] = note;
+
+                if (_selectedNote != null && _notes.TryGetValue(_selectedNote.Id, out var restored))
+                    _selectedNote = restored;
+
+                InvokeAsync(StateHasChanged);
+            };
+
+            NoteHub.OnNoteReceived += note =>
+            {
+                _notes[note.Id] = note;
+                if (_selectedNote?.Id == note.Id)
+                    _selectedNote = note;
+
+                InvokeAsync(StateHasChanged);
+            };
+
+            NoteHub.OnNoteDeleted += id =>
+            {
+                if (_notes.Remove(id))
+                {
+                    if (_selectedNote?.Id == id)
+                        _selectedNote = null;
+
+                    InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnConnectionError += error =>
+            {
+                _errorMessage = error;
+                InvokeAsync(StateHasChanged);
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing note editor");
+            _errorMessage = "Failed to initialize note editor. Please refresh the page.";
+        }
+    }
+
+    private void SelectNote(Note note) => _selectedNote = note;
+
+    private async Task CreateNewNote()
+    {
+        var note = new Note
+        {
+            NoteName = "Untitled"
+        };
+        _notes[note.Id] = note;
+        _selectedNote = note;
+        await NoteHub.SendNote(note);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleTitleChange(ChangeEventArgs e)
+    {
+        if (_selectedNote != null)
+        {
+            _selectedNote.NoteName = e.Value?.ToString() ?? "Untitled";
+            await NoteHub.SendNote(_selectedNote);
+        }
+    }
+
+    private async void HandleContentChange(ChangeEventArgs e)
+    {
+        if (_selectedNote != null)
+        {
+            _selectedNote.Content = e.Value?.ToString() ?? "";
+            await NoteHub.SendNote(_selectedNote);
+        }
+    }
+
+    private async Task DeleteNote(string id)
+    {
+        if (_notes.Remove(id))
+        {
+            if (_selectedNote?.Id == id)
+                _selectedNote = null;
+
+            await NoteHub.DeleteNote(id);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await NoteHub.StopAsync();
+}

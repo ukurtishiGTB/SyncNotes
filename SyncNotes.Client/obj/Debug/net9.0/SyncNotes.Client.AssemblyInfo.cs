@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SyncNotes.Client")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5d332c534207c6557170c7be6d64359cf98c596f")]
 [assembly: System.Reflection.AssemblyProductAttribute("SyncNotes.Client")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SyncNotes.Client")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

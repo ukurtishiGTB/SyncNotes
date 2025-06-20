@@ -1,0 +1,910 @@
+@page "/whiteboard"
+@using SyncNotes.Shared.Models
+@using Microsoft.AspNetCore.Components.Web;
+@inject SyncNotes.Client.Services.NoteHubService NoteHub
+@inject ILogger<Whiteboard> Logger
+@inject IJSRuntime JS
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h3>Collaborative Whiteboard</h3>
+        </div>
+    </div>
+    
+    <!-- Whiteboard Selection/Creation -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            @if (_whiteboardNames.Any())
+            {
+                <label class="form-label">Select Whiteboard:</label>
+                <select class="form-select" @onchange="OnWhiteboardSelected" value="@_selectedWhiteboard">
+                    <option value="">-- Select a whiteboard --</option>
+                    @foreach (var name in _whiteboardNames)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <p class="text-muted">No whiteboards available. Create a new one below.</p>
+            }
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Whiteboard Name:</label>
+            <div class="input-group">
+                <input class="form-control"
+                       @bind="_whiteboardName"
+                       @bind:event="oninput"
+                       placeholder="Enter whiteboard name..." />
+                <button class="btn btn-primary" @onclick="CreateOrSwitchWhiteboard">
+                    @if (string.IsNullOrEmpty(_selectedWhiteboard))
+                    {
+                        <text>Create</text>
+                    }
+                    else
+                    {
+                        <text>Switch</text>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawing Tools -->
+    <div class="row mb-3">
+        <div class="col-auto">
+            <div class="btn-group">
+                <button class="btn btn-outline-light @(_currentTool == "l" ? "active" : "")" @onclick="@(() => SetTool("l"))">
+                    <i class="bi bi-pencil"></i> Line
+                </button>
+                <button class="btn btn-outline-light @(_currentTool == "r" ? "active" : "")" @onclick="@(() => SetTool("r"))">
+                    <i class="bi bi-square"></i> Rectangle
+                </button>
+                <button class="btn btn-outline-light @(_currentTool == "c" ? "active" : "")" @onclick="@(() => SetTool("c"))">
+                    <i class="bi bi-circle"></i> Circle
+                </button>
+                <button class="btn btn-outline-light @(_currentTool == "t" ? "active" : "")" @onclick="@(() => SetTool("t"))">
+                    <i class="bi bi-type"></i> Text
+                </button>
+                <button class="btn btn-outline-danger @(_currentTool == "eraser" ? "active" : "")" @onclick="@(() => SetTool("eraser"))">
+                    <i class="bi bi-eraser"></i> Eraser
+                </button>
+            </div>
+            <div class="btn-group ms-2">
+                <input type="color" class="form-control form-control-color" @bind="_currentColor" />
+                <input type="range" class="form-range" min="1" max="10" @bind="_currentStrokeWidth" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-danger ms-2" @onclick="ShowClearConfirmation">
+                    <i class="bi bi-trash"></i> Clear
+                </button>
+                <button class="btn btn-outline-light ms-2" @onclick="ShowShareModal">
+                    <i class="bi bi-share"></i> Share
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_selectedWhiteboard))
+    {
+        <div class="alert alert-info">
+            <strong>Current Whiteboard:</strong> @_selectedWhiteboard
+        </div>
+    }
+
+    <!-- Whiteboard canvas -->
+    @if (!string.IsNullOrEmpty(_selectedWhiteboard))
+    {
+        <div class="whiteboard-container"
+             @onmousedown="StartDrawingOrErasing"
+             @onmousemove="Draw"
+             @onmouseup="EndDrawing"
+             @onmouseleave="EndDrawing"
+             @ontouchstart="OnTouchStart"
+             @ontouchmove="OnTouchMove"
+             @ontouchend="OnTouchEnd">
+            <svg width="100%" height="600" style="border: 1px solid #ccc; background-color: white;">
+                @foreach (var element in GetCurrentWhiteboardElements())
+                {
+                    @switch (element.Type)
+                    {
+                        case "l":
+                            <polyline points="@string.Join(" ", element.Points.Select(p => $"{p.X},{p.Y}"))"
+                                     stroke="@element.Color"
+                                     stroke-width="@element.StrokeWidth"
+                                     fill="none" />
+                            break;
+                        case "r":
+                            var rect = element.Points;
+                            if (rect.Count >= 2)
+                            {
+                                var x = Math.Min(rect[0].X, rect[1].X);
+                                var y = Math.Min(rect[0].Y, rect[1].Y);
+                                var width = Math.Abs(rect[1].X - rect[0].X);
+                                var height = Math.Abs(rect[1].Y - rect[0].Y);
+                                <rect x="@x" y="@y" width="@width" height="@height"
+                                      stroke="@element.Color"
+                                      stroke-width="@element.StrokeWidth"
+                                      fill="none" />
+                            }
+                            break;
+                        case "c":
+                            var circle = element.Points;
+                            if (circle.Count >= 2)
+                            {
+                                var centerX = (circle[0].X + circle[1].X) / 2;
+                                var centerY = (circle[0].Y + circle[1].Y) / 2;
+                                var radius = Math.Sqrt(Math.Pow(circle[1].X - circle[0].X, 2) + Math.Pow(circle[1].Y - circle[0].Y, 2)) / 2;
+                                <circle cx="@centerX" cy="@centerY" r="@radius"
+                                        stroke="@element.Color"
+                                        stroke-width="@element.StrokeWidth"
+                                        fill="none" />
+                            }
+                            break;
+                        case "t":
+                            if (element.Points.Any())
+                            {
+                                <svg:text x="@element.Points[0].X" y="@element.Points[0].Y"
+                                      fill="@element.Color"
+                                      font-size="@(@element.StrokeWidth * 4)px">@element.Text</svg:text>
+                            }
+                            break;
+                    }
+                }
+            </svg>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            <h5>No Whiteboard Selected</h5>
+            <p>Please select an existing whiteboard or create a new one to start drawing.</p>
+        </div>
+    }
+</div>
+
+<!-- Error Display -->
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @_errorMessage
+        <button type="button" class="btn-close" @onclick="@(() => _errorMessage = null)"></button>
+    </div>
+}
+
+<!-- Text Input Modal -->
+@if (_showTextInput)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enter Text</h5>
+                    <button type="button" class="btn-close" @onclick="CancelTextInput"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" @bind="_textInput" @onkeyup="HandleTextInputKeyPress" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelTextInput">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmTextInput">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- Clear Confirmation Modal -->
+@if (_showClearConfirmation)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Clear Whiteboard</h5>
+                    <button type="button" class="btn-close" @onclick="HideClearConfirmation"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to clear the whiteboard "@_selectedWhiteboard"?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideClearConfirmation">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmClear">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- Share Modal -->
+@if (_showShareModal)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Share Whiteboard</h5>
+                    <button type="button" class="btn-close" @onclick="HideShareModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Friend:</label>
+                        <select class="form-select" @bind="_selectedFriendId">
+                            <option value="">-- Select a friend --</option>
+                            @foreach (var friend in _friends)
+                            {
+                                <option value="@friend.Id">@friend.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideShareModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ShareWhiteboard">Share</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private readonly Dictionary<string, WhiteboardElement> _elements = new();
+    private string? _errorMessage;
+    private string _currentTool = "l";
+    private string _currentColor = "#000000";
+    private double _currentStrokeWidth = 2;
+    private WhiteboardElement? _currentElement;
+    private bool _isDrawing;
+    private bool _showTextInput;
+    private bool _showClearConfirmation;
+    private bool _showShareModal;
+    private string _textInput = "";
+    private List<string> _whiteboardNames = new();
+    private string? _selectedWhiteboard;
+    private string _whiteboardName = "";
+    private string _selectedFriendId = "";
+    private List<User> _friends = new();
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await NoteHub.StartAsync();
+
+            // Register for real-time whiteboard element updates
+            NoteHub.OnWhiteboardElementReceived += async element =>
+            {
+                _elements[element.Id] = element;
+                await InvokeAsync(StateHasChanged);
+            };
+
+            // Handle receiving whiteboard elements for a specific whiteboard
+            NoteHub.OnWhiteboardElementsReceived += elements =>
+            {
+                _elements.Clear();
+                foreach (var element in elements)
+                {
+                    _elements[element.Id] = element;
+                }
+                StateHasChanged();
+            };
+
+            // Single event handler for initial state
+            NoteHub.OnInitialStateReceived += async (notes, elements, whiteboardNames) =>
+            {
+                _elements.Clear();
+                foreach (var element in elements)
+                {
+                    _elements[element.Id] = element;
+                }
+                
+                _whiteboardNames = whiteboardNames?.ToList() ?? new List<string>();
+                
+                // Auto-select first whiteboard if available
+                if (_whiteboardNames.Any() && string.IsNullOrEmpty(_selectedWhiteboard))
+                {
+                    _selectedWhiteboard = _whiteboardNames.First();
+                    _whiteboardName = _selectedWhiteboard;
+                }
+                
+                await InvokeAsync(StateHasChanged);
+            };
+
+            // Handle shared whiteboards
+            NoteHub.OnWhiteboardShared += async whiteboardName =>
+            {
+                if (!_whiteboardNames.Contains(whiteboardName))
+                {
+                    _whiteboardNames.Add(whiteboardName);
+                    
+                    // If no whiteboard is selected, select this one
+                    if (string.IsNullOrEmpty(_selectedWhiteboard))
+                    {
+                        _selectedWhiteboard = whiteboardName;
+                        _whiteboardName = whiteboardName;
+                        await NoteHub.RequestWhiteboardElements(whiteboardName);
+                    }
+                    
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnWhiteboardElementDeleted += async elementId =>
+            {
+                if (_elements.Remove(elementId))
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnWhiteboardCleared += async whiteboardName =>
+            {
+                if (whiteboardName == _selectedWhiteboard)
+                {
+                    var elementsToRemove = _elements.Values
+                        .Where(e => e.WhiteboardName == whiteboardName)
+                        .Select(e => e.Id)
+                        .ToList();
+                    
+                    foreach (var id in elementsToRemove)
+                    {
+                        _elements.Remove(id);
+                    }
+                    
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnConnectionError += error =>
+            {
+                _errorMessage = error;
+                InvokeAsync(StateHasChanged);
+            };
+
+            // Register for friend-related events
+            NoteHub.OnFriendAdded += friend =>
+            {
+                if (!_friends.Any(f => f.Id == friend.Id))
+                {
+                    _friends.Add(friend);
+                    InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnFriendRemoved += friendId =>
+            {
+                var friend = _friends.FirstOrDefault(f => f.Id == friendId);
+                if (friend != null)
+                {
+                    _friends.Remove(friend);
+                    InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnFriendsReceived += friends =>
+            {
+                _friends = friends;
+                InvokeAsync(StateHasChanged);
+            };
+
+            // Load initial friends list
+            await NoteHub.GetFriends();
+
+            // Load initial state
+            await NoteHub.RequestWhiteboardElements(_selectedWhiteboard);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing whiteboard");
+            _errorMessage = "Failed to initialize whiteboard. Please refresh the page.";
+        }
+    }
+
+    private async Task CreateOrSwitchWhiteboard()
+    {
+        if (string.IsNullOrWhiteSpace(_whiteboardName))
+        {
+            _errorMessage = "Please enter a whiteboard name.";
+            return;
+        }
+
+        try
+        {
+            _selectedWhiteboard = _whiteboardName.Trim();
+            
+            // Add to list if it's a new whiteboard
+            if (!_whiteboardNames.Contains(_selectedWhiteboard))
+            {
+                _whiteboardNames.Add(_selectedWhiteboard);
+            }
+
+            // Clear current elements display
+            _elements.Clear();
+
+            // Request elements for the selected whiteboard
+            await NoteHub.RequestWhiteboardElements(_selectedWhiteboard);
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error switching whiteboard");
+            _errorMessage = "Failed to switch whiteboard. Please try again.";
+        }
+    }
+
+    private async Task OnWhiteboardSelected(ChangeEventArgs e)
+    {
+        _selectedWhiteboard = e.Value?.ToString();
+        _elements.Clear();
+        if (!string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            await NoteHub.RequestWhiteboardElements(_selectedWhiteboard);
+        }
+        StateHasChanged();
+    }
+
+    private IEnumerable<WhiteboardElement> GetCurrentWhiteboardElements()
+    {
+        return _elements.Values
+            .Where(e => e.WhiteboardName == _selectedWhiteboard)
+            .OrderBy(e => e.LastModified);
+    }
+
+    private void SetTool(string tool)
+    {
+        _currentTool = tool;
+    }
+
+    private void StartDrawingOrErasing(MouseEventArgs e)
+    {
+        if (_currentTool == "eraser")
+        {
+            // Find the topmost element under the cursor and delete it
+            var element = FindElementAtPosition(e.OffsetX, e.OffsetY);
+            if (element != null)
+            {
+                _ = NoteHub.DeleteWhiteboardElement(element.Id);
+            }
+            return;
+        }
+        StartDrawing(e);
+    }
+
+    private void StartDrawing(MouseEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            _errorMessage = "Please select or create a whiteboard first.";
+            return;
+        }
+
+        try
+        {
+            _isDrawing = true;
+            _currentElement = new WhiteboardElement
+            {
+                Type = _currentTool,
+                Color = _currentColor,
+                StrokeWidth = _currentStrokeWidth,
+                WhiteboardName = _selectedWhiteboard,
+                Points = new List<Point> { new Point { X = e.OffsetX, Y = e.OffsetY } }
+            };
+
+            if (_currentTool == "t")
+            {
+                _showTextInput = true;
+                _isDrawing = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting drawing");
+            _errorMessage = "Failed to start drawing. Please try again.";
+            _isDrawing = false;
+            _currentElement = null;
+        }
+    }
+
+    private void HandleTextInputKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ConfirmTextInput();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelTextInput();
+        }
+    }
+
+    private async Task ConfirmTextInput()
+    {
+        if (!string.IsNullOrWhiteSpace(_textInput) && _currentElement != null)
+        {
+            _currentElement.Text = _textInput;
+            _elements[_currentElement.Id] = _currentElement;
+            await NoteHub.SendWhiteboardElement(_currentElement);
+        }
+        _showTextInput = false;
+        _textInput = "";
+        _currentElement = null;
+    }
+
+    private void CancelTextInput()
+    {
+        _showTextInput = false;
+        _textInput = "";
+        _currentElement = null;
+    }
+
+    private void ShowClearConfirmation()
+    {
+        if (string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            _errorMessage = "Please select a whiteboard first.";
+            return;
+        }
+        _showClearConfirmation = true;
+    }
+
+    private void HideClearConfirmation()
+    {
+        _showClearConfirmation = false;
+    }
+
+    private async Task ConfirmClear()
+    {
+        if (!string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            // Remove only elements from current whiteboard
+            var elementsToRemove = _elements.Values
+                .Where(e => e.WhiteboardName == _selectedWhiteboard)
+                .Select(e => e.Id)
+                .ToList();
+            
+            foreach (var id in elementsToRemove)
+            {
+                _elements.Remove(id);
+            }
+            
+            await NoteHub.ClearWhiteboard(_selectedWhiteboard);
+        }
+        _showClearConfirmation = false;
+    }
+
+    private void Draw(MouseEventArgs e)
+    {
+        if (!_isDrawing || _currentElement == null) return;
+
+        try
+        {
+            switch (_currentTool)
+            {
+                case "l":
+                    _currentElement.Points.Add(new Point { X = e.OffsetX, Y = e.OffsetY });
+                    break;
+                case "r":
+                case "c":
+                    if (_currentElement.Points.Count > 1)
+                    {
+                        _currentElement.Points[1] = new Point { X = e.OffsetX, Y = e.OffsetY };
+                    }
+                    else
+                    {
+                        _currentElement.Points.Add(new Point { X = e.OffsetX, Y = e.OffsetY });
+                    }
+                    break;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error drawing");
+            _errorMessage = "Failed to draw. Please try again.";
+        }
+    }
+
+    private async Task EndDrawing()
+    {
+        if (!_isDrawing || _currentElement == null) return;
+
+        try
+        {
+            _isDrawing = false;
+            _elements[_currentElement.Id] = _currentElement;
+            await NoteHub.SendWhiteboardElement(_currentElement);
+            _currentElement = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error ending drawing");
+            _errorMessage = "Failed to save drawing. Please try again.";
+        }
+    }
+
+    private void ShowShareModal()
+    {
+        if (string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            _errorMessage = "Please select a whiteboard to share.";
+            return;
+        }
+        _showShareModal = true;
+    }
+
+    private void HideShareModal()
+    {
+        _showShareModal = false;
+        _selectedFriendId = "";
+    }
+
+    private async Task ShareWhiteboard()
+    {
+        if (string.IsNullOrEmpty(_selectedFriendId))
+        {
+            _errorMessage = "Please select a friend to share with.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_selectedWhiteboard))
+        {
+            _errorMessage = "No whiteboard selected.";
+            return;
+        }
+
+        try
+        {
+            await NoteHub.ShareWhiteboard(_selectedWhiteboard, _selectedFriendId);
+            HideShareModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error sharing whiteboard");
+            _errorMessage = "Failed to share whiteboard. Please try again.";
+        }
+    }
+
+    private WhiteboardElement? FindElementAtPosition(double x, double y)
+    {
+        // Check all elements in reverse order (topmost first)
+        foreach (var element in GetCurrentWhiteboardElements().Reverse())
+        {
+            switch (element.Type)
+            {
+                case "l":
+                    if (IsPointNearPolyline(element.Points, x, y, element.StrokeWidth + 6))
+                        return element;
+                    break;
+                case "r":
+                    if (element.Points.Count >= 2)
+                    {
+                        var minX = Math.Min(element.Points[0].X, element.Points[1].X);
+                        var maxX = Math.Max(element.Points[0].X, element.Points[1].X);
+                        var minY = Math.Min(element.Points[0].Y, element.Points[1].Y);
+                        var maxY = Math.Max(element.Points[0].Y, element.Points[1].Y);
+                        if (x >= minX && x <= maxX && y >= minY && y <= maxY)
+                            return element;
+                    }
+                    break;
+                case "c":
+                    if (element.Points.Count >= 2)
+                    {
+                        var centerX = (element.Points[0].X + element.Points[1].X) / 2;
+                        var centerY = (element.Points[0].Y + element.Points[1].Y) / 2;
+                        var radius = Math.Sqrt(Math.Pow(element.Points[1].X - element.Points[0].X, 2) + Math.Pow(element.Points[1].Y - element.Points[0].Y, 2)) / 2;
+                        var dist = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(y - centerY, 2));
+                        if (dist <= radius + 8)
+                            return element;
+                    }
+                    break;
+                case "t":
+                    if (element.Points.Any())
+                    {
+                        var px = element.Points[0].X;
+                        var py = element.Points[0].Y;
+                        if (Math.Abs(x - px) < 24 && Math.Abs(y - py) < 24)
+                            return element;
+                    }
+                    break;
+            }
+        }
+        return null;
+    }
+
+    private bool IsPointNearPolyline(List<Point> points, double x, double y, double tolerance)
+    {
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            var p1 = points[i];
+            var p2 = points[i + 1];
+            var dist = DistancePointToSegment(x, y, p1.X, p1.Y, p2.X, p2.Y);
+            if (dist <= tolerance)
+                return true;
+        }
+        return false;
+    }
+
+    private double DistancePointToSegment(double px, double py, double x1, double y1, double x2, double y2)
+    {
+        var A = px - x1;
+        var B = py - y1;
+        var C = x2 - x1;
+        var D = y2 - y1;
+        var dot = A * C + B * D;
+        var len_sq = C * C + D * D;
+        double param = -1;
+        if (len_sq != 0) param = dot / len_sq;
+        double xx, yy;
+        if (param < 0) { xx = x1; yy = y1; }
+        else if (param > 1) { xx = x2; yy = y2; }
+        else { xx = x1 + param * C; yy = y1 + param * D; }
+        var dx = px - xx;
+        var dy = py - yy;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    private async Task OnTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            var touch = e.Touches[0];
+            var coords = await JS.InvokeAsync<TouchCoordinates>("getSvgCoordinatesFromTouch", touch);
+            var fakeMouse = new MouseEventArgs
+            {
+                OffsetX = coords.X,
+                OffsetY = coords.Y
+            };
+            StartDrawingOrErasing(fakeMouse);
+        }
+    }
+
+    private async Task OnTouchMove(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            var touch = e.Touches[0];
+            var coords = await JS.InvokeAsync<TouchCoordinates>("getSvgCoordinatesFromTouch", touch);
+            var fakeMouse = new MouseEventArgs
+            {
+                OffsetX = coords.X,
+                OffsetY = coords.Y
+            };
+            Draw(fakeMouse);
+        }
+    }
+
+    private async Task OnTouchEnd(TouchEventArgs e)
+    {
+        await EndDrawing();
+    }
+
+
+    public class TouchCoordinates
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+    }
+
+    private (double Left, double Top) GetSvgBoundingClientRect()
+    {
+        var rect = JS.InvokeAsync<BoundingClientRect>("getSvgBoundingClientRect").GetAwaiter().GetResult();
+        return (rect.Left, rect.Top);
+    }
+
+    public class BoundingClientRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NoteHub.StopAsync();
+    }
+}
+
+<style>
+    /* Modal styling */
+    .whiteboard-container {
+        touch-action: none; /* Prevents all touch gestures */
+        -webkit-user-select: none; /* Prevents text selection */
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    .whiteboard-container svg {
+        touch-action: none; /* Also apply to SVG */
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    /* Modal styling - keep your existing styles */
+    .modal-content {
+        background: rgba(15, 12, 41, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        color: white;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-select {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 12px;
+    }
+
+    .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(79, 172, 254, 0.5);
+        box-shadow: 0 0 0 0.25rem rgba(79, 172, 254, 0.25);
+        color: white;
+    }
+
+    .form-select option {
+        background-color: #1a1a2e;
+        color: white;
+    }
+</style>
+
+<script>
+    window.getSvgBoundingClientRect = function() {
+        var svg = document.querySelector('.whiteboard-container svg');
+        if (svg) {
+            var rect = svg.getBoundingClientRect();
+            return { left: rect.left, top: rect.top };
+        }
+        return { left: 0, top: 0 };
+    };
+
+    // Add touch event prevention when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const whiteboardContainer = document.querySelector('.whiteboard-container');
+        if (whiteboardContainer) {
+            // Prevent default touch behaviors
+            whiteboardContainer.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+
+            whiteboardContainer.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+
+            whiteboardContainer.addEventListener('touchend', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+        }
+    });
+    window.getSvgCoordinatesFromTouch = function(touch) {
+        var svg = document.querySelector('.whiteboard-container svg');
+        if (svg && touch) {
+            var rect = svg.getBoundingClientRect();
+            return {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+        }
+        return { x: 0, y: 0 };
+    };
+</script>

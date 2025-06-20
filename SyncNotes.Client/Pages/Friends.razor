@@ -1,0 +1,377 @@
+@page "/friends"
+@using SyncNotes.Shared.Models
+@inject SyncNotes.Client.Services.NoteHubService NoteHub
+@inject ILogger<Friends> Logger
+
+<div class="friends-container">
+    <div class="page-header">
+        <h2 class="text-gradient">Friends & Collaborators</h2>
+        <p class="text-muted">Connect with friends to collaborate on notes</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Add Friend Form -->
+        <div class="col-md-5">
+            <div class="glass-card">
+                <div class="card-header">
+                    <h5 class="card-title">Add Friend</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="email" class="form-control custom-input" 
+                               @bind="_friendEmail" 
+                               @bind:event="oninput"
+                               placeholder="Enter friend's email" />
+                        <button class="btn btn-primary" @onclick="AddFriend">
+                            <i class="bi bi-person-plus me-2"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">Benefits of Collaboration</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="feature-list">
+                        <li><i class="bi bi-check-circle-fill"></i> Real-time note editing</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Share ideas instantly</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Work together on projects</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Keep everyone in sync</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends List -->
+        <div class="col-md-7">
+            <div class="glass-card">
+                <div class="card-header">
+                    <h5 class="card-title">My Friends</h5>
+                </div>
+                <div class="card-body">
+                    @if (_friends.Any())
+                    {
+                        <div class="friends-list">
+                            @foreach (var friend in _friends)
+                            {
+                                <div class="friend-item">
+                                    <div class="friend-info">
+                                        <div class="friend-avatar" style="background-color: @friend.Color">
+                                            @friend.Name[0]
+                                        </div>
+                                        <div class="friend-details">
+                                            <h6 class="friend-name">@friend.Name</h6>
+                                            <small class="friend-email">@friend.Email</small>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => RemoveFriend(friend.Id)">
+                                        <i class="bi bi-person-dash"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-people"></i>
+                            <p>No friends added yet</p>
+                            <small>Add friends using their email address to start collaborating</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" @onclick="@(() => _errorMessage = null)"></button>
+            </div>
+            <div class="toast-body bg-danger text-white">
+                @_errorMessage
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .friends-container {
+        min-height: 100vh;
+        padding: 2rem;
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        color: #fff;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .text-gradient {
+        background: linear-gradient(90deg, #00f2fe, #4facfe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+    
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .glass-card:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transform: translateY(-5px);
+    }
+    
+    .card-header {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1.25rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .custom-input {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+    }
+    
+    .custom-input:focus {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 0 0.25rem rgba(79, 172, 254, 0.25);
+        color: white;
+    }
+    
+    .custom-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(90deg, #00f2fe, #4facfe);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+    }
+    
+    .friends-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .friend-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .friend-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .friend-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .friend-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .friend-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .friend-name {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .friend-email {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .btn-outline-danger {
+        border: 1px solid rgba(255, 99, 132, 0.5);
+        color: rgba(255, 99, 132, 0.8);
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-outline-danger:hover {
+        background: rgba(255, 99, 132, 0.2);
+        border-color: rgba(255, 99, 132, 0.8);
+        color: rgba(255, 99, 132, 1);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .feature-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .feature-list i {
+        color: #4facfe;
+    }
+    
+    .toast-container {
+        z-index: 1050;
+    }
+    
+    .toast {
+        background: rgba(33, 37, 41, 0.85);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    
+    .toast-header {
+        background: rgba(0, 0, 0, 0.2);
+        color: white;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+
+@code {
+    private List<User> _friends = new();
+    private string _friendEmail = "";
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await NoteHub.StartAsync();
+            
+            // Register for friend-related events
+            NoteHub.OnFriendsReceived += friends =>
+            {
+                _friends = friends.ToList();
+                InvokeAsync(StateHasChanged);
+            };
+
+            NoteHub.OnFriendAdded += friend =>
+            {
+                if (!_friends.Any(f => f.Id == friend.Id))
+                {
+                    _friends.Add(friend);
+                    InvokeAsync(StateHasChanged);
+                }
+            };
+
+            NoteHub.OnFriendRemoved += friendId =>
+            {
+                _friends.RemoveAll(f => f.Id == friendId);
+                InvokeAsync(StateHasChanged);
+            };
+
+            // Load initial friends list
+            await NoteHub.GetFriends();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing friends page");
+            _errorMessage = "Failed to initialize friends page. Please refresh.";
+        }
+    }
+
+    private async Task AddFriend()
+    {
+        if (string.IsNullOrWhiteSpace(_friendEmail))
+        {
+            _errorMessage = "Please enter a friend's email.";
+            return;
+        }
+
+        try
+        {
+            await NoteHub.AddFriend(_friendEmail);
+            _friendEmail = "";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding friend");
+            _errorMessage = "Failed to add friend. Please try again.";
+        }
+    }
+
+    private async Task RemoveFriend(string friendId)
+    {
+        try
+        {
+            await NoteHub.RemoveFriend(friendId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing friend");
+            _errorMessage = "Failed to remove friend. Please try again.";
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await NoteHub.StopAsync();
+    }
+}

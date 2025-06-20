@@ -1,0 +1,335 @@
+@page "/login"
+@using SyncNotes.Client.Services
+@using SyncNotes.Shared.Models.ViewModels
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<div class="auth-container">
+    <div class="auth-background">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+    </div>
+    
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="logo">
+                <i class="bi bi-journal-text"></i>
+                <span>SyncNotes</span>
+            </div>
+            <h2>Welcome Back</h2>
+            <p class="text-muted">Sign in to continue to SyncNotes</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-glass" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                @_errorMessage
+                <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
+            </div>
+        }
+
+        <EditForm Model="@_loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label for="email">
+                    <i class="bi bi-envelope"></i>
+                    Email
+                </label>
+                <InputText id="email" @bind-Value="_loginModel.Email" class="form-control" placeholder="Enter your email" />
+                <ValidationMessage For="@(() => _loginModel.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <i class="bi bi-lock"></i>
+                    Password
+                </label>
+                <InputText type="password" id="password" @bind-Value="_loginModel.Password" class="form-control" placeholder="Enter your password" />
+                <ValidationMessage For="@(() => _loginModel.Password)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@_isLoading">
+                @if (_isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span class="ms-2">Signing in...</span>
+                }
+                else
+                {
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    <span>Sign In</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="/register" class="text-primary">Sign up</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f0c29;
+        padding: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .auth-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+    
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.4;
+    }
+    
+    .shape-1 {
+        background: linear-gradient(135deg, #6b46c1 0%, #805ad5 100%);
+        width: 500px;
+        height: 500px;
+        top: -200px;
+        left: -100px;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    .shape-2 {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        width: 400px;
+        height: 400px;
+        bottom: -150px;
+        right: -100px;
+        animation: float 10s ease-in-out infinite;
+    }
+    
+    .shape-3 {
+        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+        width: 300px;
+        height: 300px;
+        bottom: 200px;
+        left: 30%;
+        animation: float 12s ease-in-out infinite;
+    }
+    
+    .shape-4 {
+        background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+        width: 250px;
+        height: 250px;
+        top: 200px;
+        right: 20%;
+        animation: float 9s ease-in-out infinite;
+    }
+    
+    @@keyframes float {
+        0% {
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            transform: translateY(-20px) scale(1.05);
+        }
+        100% {
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    .auth-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 450px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 1;
+        position: relative;
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    
+    .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+    
+    .logo i {
+        font-size: 2rem;
+        margin-right: 0.5rem;
+        background: linear-gradient(135deg, #6b46c1 0%, #805ad5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .auth-header h2 {
+        color: white;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+    }
+    
+    .auth-header p {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .form-group {
+        margin-bottom: 1.75rem;
+    }
+    
+    .form-group label {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-group label i {
+        margin-right: 0.5rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .form-control {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(107, 70, 193, 0.5);
+        box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.2);
+        color: white;
+    }
+    
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #6b46c1 0%, #805ad5 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(107, 70, 193, 0.3);
+    }
+    
+    .btn-primary:disabled {
+        background: rgba(255, 255, 255, 0.1);
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 2.5rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .auth-footer a {
+        color: #805ad5;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .auth-footer a:hover {
+        color: #9f7aea;
+        text-decoration: underline;
+    }
+    
+    .validation-message {
+        color: #fc8181;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .alert-glass {
+        background: rgba(220, 38, 38, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+        color: white;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .alert-glass i {
+        color: #fc8181;
+        margin-right: 0.5rem;
+    }
+    
+    .alert-glass .btn-close {
+        margin-left: auto;
+        color: white;
+        opacity: 0.7;
+    }
+</style>
+
+@code {
+    private UserLoginViewmodel _loginModel = new();
+    private string? _errorMessage;
+    private bool _isLoading;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            _isLoading = true;
+            _errorMessage = null;
+
+            var success = await AuthService.Login(_loginModel);
+            if (success)
+            {
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                _errorMessage = "Invalid email or password";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "An error occurred while signing in. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
